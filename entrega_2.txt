@@ -1,0 +1,29 @@
+Para empezar a encarar el problema, primero intenté correrlo con el algoritmo greedy ideado para el TP1. 
+Al ser una instancia más grande del problema, tardaba algunos minutos más en correr, pero corría en un tiempo aceptable.
+Sin embargo, nos encontramos con el mismo problema que en el TP1, que al ser greedy el algoritmo tiene una fuerte dependencia con el orden inicial.
+Probando corridas randomizadas (lo que me sirvió para llegar a la solucion óptima del primer problema), logramos mejorar la solución de cerca del 700 a 535.
+Pero ahora la iteración para corridas con orden randomizado tardaba más, y aunque subí la cantidad de iteraciones no lograba mejorar la solución.
+
+Por lo tanto, intenté tomar un approach distinto. Como habia analizado en el TP1, la variable más significativa para el problema es la cantidad de lavados: es más costoso agregar un lavado nuevo que agregar una prenda a cualquier lavado.
+Entonces, una buena heurística seria centrarme en minimizar el número de lavados. Pensé que me serviria para simplificar el problema (olvidandome de los tiempos), pero sin perder tanta precisión.
+De esta forma, mi problema pasó a ser encontrar los conjuntos de prendas compatibles que minimicen la cantidad de lavados.
+Esto puede plantearse como un problema de coloreo de grafos: los vértices son las prendas y las aristas conectan a los vertices incompatibles, de forma que si los vertices están conectados no pueden tener el mismo color.
+Cada color representa un lavado distinto.
+En la teórica vimos como plantear las restricciones de este problema para resolverlo con programación lineal, y encontré una librería en python (pulp) que me permitió plantear las ecuaciones programáticamente, que usa por atrás el solver CBC.
+Esto tardaba demasiado como para correrlo en GoogleCollab, por lo que lo tuve correr localmente (ver tp2_modelos.py). Sin embargo, tampoco localmente lo pude hacer andar: después de dejarlo correr más de cuatro horas, fallaba con un error de la librería.
+
+Esto podria deberse o a una mala configuración del solver, o a un error en las ecuaciones, no llegué a encontrar el problema, pero sabemos que el coloreo de grafos es NP-Completo y seguramente encontrar la solución óptima de esta forma iba a ser muy costoso, por lo que abandoné este camino.
+Sin embargo, la simplificación del problema y plantearlo como un grafo me sirvió para seguir analizandolo: encontré que tenía 5 componentes conexas, 4 con dos vértices cada una y la otra con el resto.
+La componente más grande seguía siendo muy compleja, entonces para simplificarla intenté clusterizar el grafo, partir el grafo en distintos subgrafos que agrupen a los nodos que estén mas "cerca", más conectados entre sí. 
+Para esto, me basé en una implementación de HCS (Highly Connected Subgraphs, "Hartuv, E., & Shamir, R. (2000)) que encontré en github: https://github.com/53RT/Highly-Connected-Subgraphs-Clustering-HCS/blob/master/hcs.py
+La idea del algoritmo es encontrar los subgrafos que estén "altamente conectados", es decir, que para generar otro subgrafo haya que borrar más de la mitad de las aristas.
+Con esto, encontré que nuestro problema estaba compuesto solamente por un grafo altamente conexo, de 100 elementos, mientras que el resto de los elementos tenian pocas conexiones entre sí y con este subgrafo.
+Esto lo pude usar como una medida de importancia de cada nodo: los que pertenecen a este subgrafo son los que tienen más incompatibilidades tanto entre sí como con el resto, por lo que son los más dificiles de ubicar en un lavado existente.
+
+De esta forma, volví al algoritmo greedy del TP1, pero usando esta información para determinar el orden inicial: ubicando primero estos nodos importantes y luego el resto. 
+Esto me llevo inicialmente a una solucion cerca de 400, y luego la pude llevar a 325 probando ordenar de forma aleatoria tanto los nodos importantes como los otros, pero manteniendo a los importantes primero.
+
+Finalmente viendo que este algoritmo greedy habia funcionado bastante bien, se me ocurrió que el approach del coloreo de grafos también se podia resolver de forma greedy, y la librería que estaba usando para graficar y analizar el grafo ya me proveia una función para hacerlo.
+El resultado del coloreo greedy depende del orden en que se recorran los nodos, fui probando distintas opciones y la que mejor me resultó fue "smallest_last", que toma al ultimo los nodos de menor grado.
+Con esta estrategia logré un puntaje de 273. Algo a tener en cuenta es que esta solución solamente tiene en cuenta minimizar la cantidad de lavados. 
+Seguramente podría mejorarse ideando algún ordenamiento de los nodos que también tenga en cuenta el tiempo de lavado de cada prenda.
